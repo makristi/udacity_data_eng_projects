@@ -4,35 +4,14 @@ dimentions: songs, users, time, artists,
 and fact: songplays.
 """
 
-from __future__ import forced_commenting_2
+from __future__ import project_3
 
 __version__ = '0.1'
 __author__ = 'Kristina Matiukhina'
 
+import configparser
 import psycopg2
 from sql_queries import create_table_queries, drop_table_queries
-
-
-## The function connects to the server and creates new sparkifydb database.
-## No input arguments is sent to the function, the return is connection and cursor.
-def create_database():
-    # connect to default database
-    conn = psycopg2.connect("host=127.0.0.1 dbname=studentdb user=student password=student")
-    conn.set_session(autocommit=True)
-    cur = conn.cursor()
-    
-    # create sparkify database with UTF8 encoding
-    cur.execute("DROP DATABASE IF EXISTS sparkifydb")
-    cur.execute("CREATE DATABASE sparkifydb WITH ENCODING 'utf8' TEMPLATE template0")
-
-    # close connection to default database
-    conn.close()    
-    
-    # connect to sparkify database
-    conn = psycopg2.connect("host=127.0.0.1 dbname=sparkifydb user=student password=student")
-    cur = conn.cursor()
-    
-    return cur, conn
 
 
 ## Drop all table from the list in sql_queries.sql
@@ -41,8 +20,7 @@ def drop_tables(cur, conn):
         cur.execute(query)
         conn.commit()
 
-
-# Create all table from the list in sql_queries.sql
+## The function creates all table from the list in sql_queries.sql
 def create_tables(cur, conn):
     for query in create_table_queries:
         cur.execute(query)
@@ -50,15 +28,20 @@ def create_tables(cur, conn):
 
 
 def main():
-    # connect to the server and create database
-    cur, conn = create_database()
+    #Read config file
+    config = configparser.ConfigParser()
+    config.read('dwh.cfg')
     
-    # drop tables if exist
+    #Connect to a database from redshift cluster
+    conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(*config['CLUSTER'].values()))
+    cur = conn.cursor()
+
+    #Drop existing tables first, in case they already exist
     drop_tables(cur, conn)
-    # create new tables
+    #Create new tables
     create_tables(cur, conn)
 
-    #close connection
+    #Close connection
     conn.close()
 
 
